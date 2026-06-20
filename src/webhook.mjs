@@ -11,9 +11,20 @@
 
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { timingSafeEqual } from 'node:crypto';
 import { runAdapter, deriveIfcGuid } from '../vendor/mycelium-sdk.mjs';
 import { fetchSpeckle } from './speckle-client.mjs';
 import { config } from '../connector.mjs';
+
+// Constant-time secret comparison — avoids leaking the secret via response
+// timing. Returns false on any type/length mismatch (timingSafeEqual throws on
+// unequal lengths, so length is checked first).
+function secretsMatch(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 export function createWebhookServer({
   server = process.env.SPECKLE_SERVER,
@@ -33,7 +44,7 @@ export function createWebhookServer({
 
         if (secret) {
           const provided = req.headers['x-webhook-secret'] || evt.secret || evt.payload?.secret;
-          if (provided !== secret) { res.writeHead(401).end('bad secret'); return; }
+          if (!secretsMatch(provided, secret)) { res.writeHead(401).end('bad secret'); return; }
         }
 
         // Speckle payload shapes vary by server version — read defensively.

@@ -82,6 +82,31 @@ test('webhook receiver → rejects bad secret', async () => {
   }
 });
 
+// 5. Webhook rejects a same-length-but-wrong secret and a missing secret
+//    (covers the constant-time comparison's content and length-guard paths).
+test('webhook receiver → rejects same-length wrong secret and missing secret', async () => {
+  const srv = createWebhookServer({ token: 'pat', secret: 's3cret', port: 0, fetchImpl: fakeFetch });
+  await new Promise((r) => srv.once('listening', r));
+  const { port } = srv.address();
+  try {
+    const sameLen = await fetch(`http://127.0.0.1:${port}/`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-webhook-secret': 'XXXXXX' }, // 6 chars, ≠ s3cret
+      body: JSON.stringify({ payload: { streamId: 'PRJ1' } }),
+    });
+    assert.equal(sameLen.status, 401);
+
+    const missing = await fetch(`http://127.0.0.1:${port}/`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' }, // no secret at all
+      body: JSON.stringify({ payload: { streamId: 'PRJ1' } }),
+    });
+    assert.equal(missing.status, 401);
+  } finally {
+    srv.close();
+  }
+});
+
 // ── minimal fake Speckle GraphQL server ───────────────────────────────────────
 async function fakeFetch(_url, init) {
   const { query } = JSON.parse(init.body);
