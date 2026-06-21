@@ -31,7 +31,8 @@ node "$ROOT/scripts/stage-app.mjs" "$PKGROOT/$APP_HOME"
 
 # 2. Universal Node runtime (lipo arm64 + x64 → one fat binary)
 fetch_node() { # arch -> extracts node binary to $BUILD/node-<arch>
-  local arch="$1" tgz="$BUILD/node-$arch.tar.gz"
+  local arch="$1"
+  local tgz="$BUILD/node-$arch.tar.gz"
   echo "  ↓ node $NODE_VERSION darwin-$arch"
   curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-darwin-$arch.tar.gz" -o "$tgz"
   tar -xzf "$tgz" -C "$BUILD"
@@ -46,7 +47,9 @@ echo "  ✓ universal node: $(lipo -archs "$PKGROOT/$APP_HOME/runtime/bin/node")
 
 # 3. Launchers on PATH (/usr/local/bin is on the default macOS PATH)
 make_launcher() { # name -> entry .mjs (relative to APP_HOME)
-  local name="$1" entry="$2" path="$PKGROOT/$PREFIX/bin/$name"
+  local name="$1"
+  local entry="$2"
+  local path="$PKGROOT/$PREFIX/bin/$name"
   cat > "$path" <<EOF
 #!/bin/bash
 exec "/$APP_HOME/runtime/bin/node" "/$APP_HOME/$entry" "\$@"
