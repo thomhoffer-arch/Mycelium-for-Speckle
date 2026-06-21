@@ -13,6 +13,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag/version to publish (e.g. v0.1.0). Leave blank to only build artifacts.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -54,13 +59,15 @@ jobs:
   release:
     needs: [macos, windows]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Publish when triggered by a v* tag, or by a manual run that supplied a tag.
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
     steps:
       - uses: actions/download-artifact@v4
         with: { path: artifacts }
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag }}
           files: |
             artifacts/macos-pkg/*.pkg
             artifacts/windows-installer/*.exe
