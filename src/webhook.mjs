@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Push-live webhook receiver for Speckle → Mycelium (zero-dep, node:http).
 //
 // Speckle fires a webhook on every new version. Point one at this endpoint
@@ -11,10 +12,21 @@
 
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 import { timingSafeEqual } from 'node:crypto';
 import { runAdapter, deriveIfcGuid } from '../vendor/mycelium-sdk.mjs';
 import { fetchSpeckle } from './speckle-client.mjs';
 import { config } from '../connector.mjs';
+
+// True when this module is the process entry point (resolves symlinks so it
+// still fires when launched via an npm-linked/installed bin).
+function isEntryPoint(metaUrl) {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  const self = fileURLToPath(metaUrl);
+  if (argv1 === self) return true;
+  try { return realpathSync(argv1) === self; } catch { return false; }
+}
 
 // Constant-time secret comparison — avoids leaking the secret via response
 // timing. Returns false on any type/length mismatch (timingSafeEqual throws on
@@ -72,6 +84,6 @@ export function createWebhookServer({
 }
 
 // CLI entry — runs only when invoked directly.
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   createWebhookServer();
 }

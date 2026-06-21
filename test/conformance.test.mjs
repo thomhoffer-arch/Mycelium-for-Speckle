@@ -1,9 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, symlinkSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runAdapter, deriveIfcGuid } from '../vendor/mycelium-sdk.mjs';
 import { config, fetchSource } from '../connector.mjs';
 import { fetchSpeckle } from '../src/speckle-client.mjs';
 import { createWebhookServer } from '../src/webhook.mjs';
+
+const connectorPath = fileURLToPath(new URL('../connector.mjs', import.meta.url));
 
 // 1. Offline mock: connector builds & conforms with zero setup.
 test('mock fetch → conformant live spine records', async () => {
@@ -104,6 +111,23 @@ test('webhook receiver → rejects same-length wrong secret and missing secret',
     assert.equal(missing.status, 401);
   } finally {
     srv.close();
+  }
+});
+
+// 6. CLI runs when launched through a symlink (the npm-linked / globally
+//    installed bin case — argv[1] is a symlink, import.meta.url is realpath).
+test('CLI entry point fires through an installed-style symlink', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'myc-bin-'));
+  const link = join(dir, 'mycelium-for-speckle');
+  try {
+    symlinkSync(connectorPath, link);
+    const version = execFileSync(process.execPath, [link, '--version'], { encoding: 'utf8' }).trim();
+    assert.match(version, /^\d+\.\d+\.\d+/);
+    const jsonl = execFileSync(process.execPath, [link, '--jsonl'], { encoding: 'utf8' }).trim();
+    assert.equal(jsonl.split('\n').length, 2); // two spine records, mesh filtered
+    for (const line of jsonl.split('\n')) assert.match(JSON.parse(line).identity.uniqueId, /^speckle:/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 

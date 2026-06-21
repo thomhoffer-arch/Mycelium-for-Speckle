@@ -9,15 +9,46 @@ Because Speckle is a **data hub**, this one connector covers every tool a team p
 Speckle: Revit, Rhino, Grasshopper, ArchiCAD, Civil3D, IFC, and more. Speckle's
 **versions/commits** map directly onto the spine's **freshness + provenance**.
 
-## Install
+## Install (one command)
+
+**macOS / Linux / WSL:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thomhoffer-arch/Mycelium-for-Speckle/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/thomhoffer-arch/Mycelium-for-Speckle/main/install.ps1 | iex
+```
+
+The installer ensures Node.js ≥ 18 (bootstrapping it via `nvm`/`winget` if
+missing), fetches the project, puts `mycelium-for-speckle` (and
+`mycelium-for-speckle-webhook`) on your PATH, runs the offline conformance suite
+to verify, and prints next steps. It's safe to re-run — it updates in place.
+There are **no runtime dependencies** (the Mycelium SDK is vendored in `vendor/`).
+
+Prefer to do it by hand? Clone and link:
 
 ```bash
 git clone https://github.com/thomhoffer-arch/Mycelium-for-Speckle
 cd Mycelium-for-Speckle
-npm test          # runs offline against a built-in mock — no setup needed
+npm test          # offline conformance suite — no setup needed
+npm link          # optional: installs the `mycelium-for-speckle` command
 ```
 
-There are **no runtime dependencies** (the Mycelium SDK is vendored in `vendor/`).
+## Use it
+
+With no setup at all, run the command to see the offline demo:
+
+```bash
+mycelium-for-speckle               # full conformance report → stdout
+mycelium-for-speckle --jsonl       # one spine record per line (for piping)
+mycelium-for-speckle --help        # all options
+```
+
+> Not installed on PATH? Run `node connector.mjs …` from the checkout — identical.
 
 ## Run it live
 
@@ -31,9 +62,9 @@ export SPECKLE_MODEL_ID="<model (branch) id>"         # its latest version is re
 # optional: read one object instead of a model's latest version
 # export SPECKLE_OBJECT_ID="<object id>"
 
-node connector.mjs                 # full conformance report → stdout
-node connector.mjs --jsonl         # one spine record per line (for piping)
-node connector.mjs --out spine.json
+mycelium-for-speckle                 # full conformance report → stdout
+mycelium-for-speckle --jsonl         # one spine record per line (for piping)
+mycelium-for-speckle --out spine.json
 ```
 
 Output is one spine record per Speckle element, with identity, freshness
@@ -45,7 +76,7 @@ Speckle fires a webhook on every new version. Run the receiver and register the 
 Speckle (project settings → Webhooks):
 
 ```bash
-SPECKLE_TOKEN=... SPECKLE_SERVER=... SPECKLE_WEBHOOK_SECRET=... npm run webhook   # listens on :3000
+SPECKLE_TOKEN=... SPECKLE_SERVER=... SPECKLE_WEBHOOK_SECRET=... mycelium-for-speckle-webhook   # listens on :3000
 ```
 
 It re-pulls the changed model and emits fresh records on each event — no polling. Pass your

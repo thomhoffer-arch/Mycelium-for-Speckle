@@ -13,8 +13,20 @@
 // updates, run the webhook receiver in src/webhook.mjs.
 
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 import { runAdapter, deriveIfcGuid } from './vendor/mycelium-sdk.mjs';
 import { fetchSpeckle } from './src/speckle-client.mjs';
+
+// True when this module is the process entry point. Resolves symlinks so it
+// still fires when launched via an npm-linked/installed bin (where argv[1] is a
+// symlink but import.meta.url is realpath-resolved).
+function isEntryPoint(metaUrl) {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  const self = fileURLToPath(metaUrl);
+  if (argv1 === self) return true;
+  try { return realpathSync(argv1) === self; } catch { return false; }
+}
 
 export const config = {
   source: 'speckle',
@@ -54,9 +66,43 @@ export function fetchSource(overrides = {}) {
 }
 
 // CLI entry — runs only when invoked directly, not when imported by tests.
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isEntryPoint(import.meta.url)) {
   const args = process.argv.slice(2);
   const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
+
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`mycelium-for-speckle — expose Speckle objects as Connective Spine records
+
+Usage:
+  mycelium-for-speckle [options]
+
+Options:
+  --jsonl            Emit one spine record per line (for piping)
+  --out <file>       Write the full report to <file> instead of stdout
+  -h, --help         Show this help
+  -v, --version      Show the version
+
+Environment (for live reads — omit all to run the offline demo):
+  SPECKLE_SERVER     Speckle server URL (default https://app.speckle.systems)
+  SPECKLE_TOKEN      Personal Access Token (scope: Streams read)
+  SPECKLE_PROJECT_ID Project (stream) id
+  SPECKLE_MODEL_ID   Model (branch) id — its latest version is read
+  SPECKLE_OBJECT_ID  Optional: read one object instead of a model's latest version
+
+Push-live webhook receiver:
+  mycelium-for-speckle-webhook            # listens on :3000 (set PORT to change)
+
+Docs: https://github.com/thomhoffer-arch/Mycelium-for-Speckle`);
+    process.exit(0);
+  }
+
+  if (args.includes('--version') || args.includes('-v')) {
+    const { readFileSync } = await import('node:fs');
+    const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+    console.log(pkg.version);
+    process.exit(0);
+  }
+
   const outFile = flag('--out');
   const jsonl = args.includes('--jsonl');
 

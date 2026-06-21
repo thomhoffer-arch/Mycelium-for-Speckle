@@ -4,7 +4,10 @@
   "description": "Mycelium connector for Speckle — exposes Speckle objects as Connective Spine records, live via GraphQL, with an optional webhook receiver for push updates.",
   "type": "module",
   "repository": { "type": "git", "url": "git+https://github.com/thomhoffer-arch/Mycelium-for-Speckle.git" },
-  "bin": { "mycelium-for-speckle": "./connector.mjs" },
+  "bin": {
+    "mycelium-for-speckle": "./connector.mjs",
+    "mycelium-for-speckle-webhook": "./src/webhook.mjs"
+  },
   "scripts": {
     "start": "node connector.mjs",
     "webhook": "node src/webhook.mjs",
