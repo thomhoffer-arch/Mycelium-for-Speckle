@@ -1,0 +1,68 @@
+name: build-installers
+
+# Builds the self-contained native installers on their own OS (they can only be
+# compiled there) and, for a version tag, publishes them to a GitHub Release.
+#
+#   • macОS   → Mycelium-for-Speckle-<ver>-macos.pkg          (universal, embeds Node)
+#   • Windows → Mycelium-for-Speckle-<ver>-windows-setup.exe  (x64, embeds Node)
+#
+# Trigger by pushing a tag like v0.1.0, or run manually (Actions ▸ Run workflow)
+# to produce installers as downloadable build artifacts without releasing.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Build macOS .pkg
+        run: |
+          chmod +x scripts/build-macos.sh
+          scripts/build-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-pkg
+          path: dist/*.pkg
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build Windows installer
+        shell: pwsh
+        run: scripts/build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+          if-no-files-found: error
+
+  release:
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/macos-pkg/*.pkg
+            artifacts/windows-installer/*.exe
+          generate_release_notes: true
+          fail_on_unmatched_files: true

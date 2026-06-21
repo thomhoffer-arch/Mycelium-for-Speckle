@@ -9,7 +9,25 @@ Because Speckle is a **data hub**, this one connector covers every tool a team p
 Speckle: Revit, Rhino, Grasshopper, ArchiCAD, Civil3D, IFC, and more. Speckle's
 **versions/commits** map directly onto the spine's **freshness + provenance**.
 
-## Install (one command)
+## Install
+
+### Native installer (double-click — nothing else needed)
+
+Download from the [**Releases**](https://github.com/thomhoffer-arch/Mycelium-for-Speckle/releases/latest) page and open it:
+
+| Platform | File | Notes |
+|---|---|---|
+| **macOS** (Apple Silicon + Intel) | `Mycelium-for-Speckle-<ver>-macos.pkg` | Universal; embeds its own Node runtime |
+| **Windows** (x64) | `Mycelium-for-Speckle-<ver>-windows-setup.exe` | Per-user, no admin; embeds its own Node runtime |
+
+These are fully self-contained — the user does **not** need Node.js or anything
+else pre-installed. After installing, open a terminal and run `mycelium-for-speckle`.
+
+> The installers are compiled on macOS/Windows runners and published
+> automatically by [`.github/workflows/release.yml`](.github/workflows/release.yml)
+> when a `v*` tag is pushed.
+
+### One command (installs Node if needed)
 
 **macOS / Linux / WSL:**
 
