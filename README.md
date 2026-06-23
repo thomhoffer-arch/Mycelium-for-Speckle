@@ -98,8 +98,8 @@ SPECKLE_TOKEN=... SPECKLE_SERVER=... SPECKLE_WEBHOOK_SECRET=... mycelium-for-spe
 ```
 
 It re-pulls the changed model and emits fresh records on each event — no polling. Pass your
-own `onRecords` to `createWebhookServer(...)` to forward records to an orchestrator, queue or
-file.
+own `onRecords` to `createWebhookServer(...)` to forward records to an orchestrator (Mycelium
+Studio), a queue or a file.
 
 ## What it maps
 
